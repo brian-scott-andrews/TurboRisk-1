@@ -1,9 +1,17 @@
 *.exe
 
+
 Doc
+
 Maps
+
 *.chm
+
 *.ini
+
 *.scl
+
 *.sgl
+
 Dump
+history.txt

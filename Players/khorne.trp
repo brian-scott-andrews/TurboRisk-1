@@ -50,8 +50,10 @@ begin
     if TIsFront(T)                      // territory is mine and front
     and (TArmies(T)>1) then begin       // attack is possible
       TWeakestFront(T,EnemyT,EnemyA);
-      FromTerritory:=T;
-      ToTerritory:=EnemyT;
+      if EnemyT>0 then begin
+        FromTerritory:=T;
+        ToTerritory:=EnemyT;
+      end;
     end;
   end;
 end;
@@ -69,44 +71,6 @@ begin
   FromTerritory:=0;
   ToTerritory:=0;
   Armies:=0;
-
-  // look for the greatest nuber of armies which is not on a front territory
-  MaxArmy := 1;
-  for T:=1 to 42 do begin
-    if TIsMine(T) and not TIsFront(T) then begin  // territory is mine and not "front"
-      if TArmies(T)>MaxArmy then begin
-        MaxArmy := TArmies(T);
-        FromTerritory := T;
-      end;
-    end;
-  end;
-  // if there are armies to move...
-  if FromTerritory>0 then begin
-    // check if can move armies to front...
-    for B:=1 to TBordersCount(FromTerritory) do begin
-      if ToTerritory=0 then begin
-        T:=TBorder(FromTerritory,B);
-        if TIsMine(T) and TIsFront(T) then begin
-          ToTerritory:=T;
-        end;
-      end;
-    end;
-    // otherwise move armies in the first bordering territory
-    if ToTerritory=0 then begin
-      for B:=1 to TBordersCount(FromTerritory) do begin
-        if ToTerritory=0 then begin
-          T:=TBorder(FromTerritory,B);
-          if TIsMine(T) then begin
-            ToTerritory:=T;
-          end;
-        end;
-      end;
-    end;
-    // Move all armies to destination (except the one which must stay)
-    if ToTerritory>0 then begin
-      Armies:=TArmies(FromTerritory)-1;
-    end;
-  end;
 end;
 
 begin
