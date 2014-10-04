@@ -4,3 +4,6 @@ Doc
 Maps
 *.chm
 *.ini
+*.scl
+*.sgl
+Dump
