@@ -1,9 +1,9 @@
 {
-Program: Khorne
+Program: Balancer
 
 Author: Denahiro
 
-Description: Adaptation of the Rambo.trp to be even more stupid
+Description: A very calm player who tries to balance his investments
 }
 
 procedure Assignment(var ToTerritory: integer);
