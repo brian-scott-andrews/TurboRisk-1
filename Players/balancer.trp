@@ -8,17 +8,46 @@ Description: A very calm player who tries to balance his investments
 
 procedure Assignment(var ToTerritory: integer);
 var
-  R: double;
-  T: integer;
+  R,MaxContested: double;
+  C,CActual,T,PT,PA,ET,EA,MaxEmpty,CEmpty,CContested: integer;
 begin
-  // find random free territory (a very stupid way to start the game!)
   ToTerritory:=0;
-  repeat
+  MaxEmpty:=0;
+  MaxContested:=-1;
+  CEmpty:=0;
+  CContested:=0;
+  // look at state of SAmerica, Africa and Australia
+  for C:=1 to 3 do begin
+    CActual:=2*C;
+    CAnalysis(CActual,PT,PA,ET,EA);
+    if PT+ET<CTerritoriesCount(CActual) then begin
+      if ET=0 then begin
+        if PT>MaxEmpty then begin
+          MaxEmpty:=PT;
+          CEmpty:=CActual;
+        end;
+      end else begin
+        R:=PT/ET;
+        if R>MaxContested then begin
+          MaxContested:=R;
+          CContested:=CActual;
+        end;
+      end;
+    end;
+  end;
+
+  // check if there is an empty continent and take non border
+  bla
+
+  // check contested
+
+  // if nothing of value find random free territory
+  while (ToTerritory=0) do begin
     R:=URandom(42);
     T:=round(R)+1;
     if TOwner(T)=0 then
       ToTerritory:=T;
-  until (ToTerritory>0);
+  end;
 end;
 
 procedure Placement(var ToTerritory: integer);
