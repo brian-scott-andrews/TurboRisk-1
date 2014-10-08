@@ -9,10 +9,14 @@ Description: A very calm player who tries to balance his investments
 procedure Assignment(var ToTerritory: integer);
 var
   R,MaxContested: double;
-  C,CActual,T,PT,PA,ET,EA,MaxEmpty,CEmpty,CContested: integer;
+  C,CActual,
+  T,PT,PA,ET,EA,
+  MaxEmpty,CEmpty,
+  CContested,
+  MinFrontsEntry,MinFrontsNoEntry,TActual,TEntry,TNoEntry: integer;
 begin
   ToTerritory:=0;
-  MaxEmpty:=0;
+  MaxEmpty:=-1;
   MaxContested:=-1;
   CEmpty:=0;
   CContested:=0;
@@ -37,7 +41,33 @@ begin
   end;
 
   // check if there is an empty continent and take non border
-  bla
+  if CEmpty>0 then begin
+    TEntry:=0;
+    TNoEntry:=0;
+    MinFrontsEntry:=100;
+    MinFrontsNoEntry:=100;
+    for T:=1 to CTerritoriesCount(CEmpty) do begin
+      TActual:=CTerritory(CEmpty,T);
+      if TOwner(TActual)=0 then begin
+        if TIsEntry(TActual) then begin
+          if (TFrontsCount(TActual) < MinFrontsEntry) then begin
+            TEntry:=TActual;
+            MinFrontsEntry:=TFrontsCount(TActual);
+          end;
+        end else begin
+          if (TFrontsCount(TActual) < MinFrontsNoEntry) then begin
+            TNoEntry:=TActual;
+            MinFrontsNoEntry:=TFrontsCount(TActual);
+          end;
+        end;
+      end;
+    end;
+    if TNoEntry>0 then begin
+      ToTerritory:=TNoEntry;
+    end else begin
+      ToTerritory:=TEntry;
+    end;
+  end;
 
   // check contested
 
