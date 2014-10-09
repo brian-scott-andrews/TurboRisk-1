@@ -6,14 +6,50 @@ Author: Denahiro
 Description: A very calm player who tries to balance his investments
 }
 
+{
+UBuffer usage:
+1: Number of armies to distribute for offense
+2: Number of armies to distribute for defense
+}
+
+function SelectOnContinent(C: integer): integer;
+var
+  T,MinFrontsEntry,MinFrontsNoEntry,TActual,TEntry,TNoEntry: integer;
+begin
+  TEntry:=0;
+  TNoEntry:=0;
+  MinFrontsEntry:=100;
+  MinFrontsNoEntry:=100;
+  for T:=1 to CTerritoriesCount(C) do begin
+    TActual:=CTerritory(C,T);
+    if TOwner(TActual)=0 then begin
+      if TIsEntry(TActual) then begin
+        if (TFrontsCount(TActual) < MinFrontsEntry) then begin
+          TEntry:=TActual;
+          MinFrontsEntry:=TFrontsCount(TActual);
+        end;
+      end else begin
+        if (TFrontsCount(TActual) < MinFrontsNoEntry) then begin
+          TNoEntry:=TActual;
+          MinFrontsNoEntry:=TFrontsCount(TActual);
+        end;
+      end;
+    end;
+  end;
+  if TNoEntry>0 then begin
+    Result:=TNoEntry;
+  end else begin
+    Result:=TEntry;
+  end;
+end;
+
 procedure Assignment(var ToTerritory: integer);
 var
   R,MaxContested: double;
   C,CActual,
   T,PT,PA,ET,EA,
   MaxEmpty,CEmpty,
-  CContested,
-  MinFrontsEntry,MinFrontsNoEntry,TActual,TEntry,TNoEntry: integer;
+  CContested: integer;
 begin
   ToTerritory:=0;
   MaxEmpty:=-1;
@@ -42,34 +78,13 @@ begin
 
   // check if there is an empty continent and take non border
   if CEmpty>0 then begin
-    TEntry:=0;
-    TNoEntry:=0;
-    MinFrontsEntry:=100;
-    MinFrontsNoEntry:=100;
-    for T:=1 to CTerritoriesCount(CEmpty) do begin
-      TActual:=CTerritory(CEmpty,T);
-      if TOwner(TActual)=0 then begin
-        if TIsEntry(TActual) then begin
-          if (TFrontsCount(TActual) < MinFrontsEntry) then begin
-            TEntry:=TActual;
-            MinFrontsEntry:=TFrontsCount(TActual);
-          end;
-        end else begin
-          if (TFrontsCount(TActual) < MinFrontsNoEntry) then begin
-            TNoEntry:=TActual;
-            MinFrontsNoEntry:=TFrontsCount(TActual);
-          end;
-        end;
-      end;
-    end;
-    if TNoEntry>0 then begin
-      ToTerritory:=TNoEntry;
-    end else begin
-      ToTerritory:=TEntry;
-    end;
+    ToTerritory:=SelectOnContinent(CEmpty);
   end;
 
   // check contested
+  if (ToTerritory=0) and (CContested>0) then begin
+    ToTerritory:=SelectOnContinent(CContested);
+  end;
 
   // if nothing of value find random free territory
   while (ToTerritory=0) do begin
@@ -82,19 +97,49 @@ end;
 
 procedure Placement(var ToTerritory: integer);
 var
-  T,Armies,MaxArmies: integer;
+  T,ET,EA,
+  Armies,
+  DefensiveArmies,OffensiveArmies,
+  Difference,MaxDifference: integer;
 begin
-  // reinforce territory with most armies and front
+  //Check UBuffers, if we have more armies to assign than in both buffers, reevaluate buffers
+  Armies:=round(UBufferGet(1)+UBufferGet(2));
+  if Armies<PNewArmies(PMe) then begin
+    UBufferSet(1,round((PNewArmies(PMe)-Armies)/2)+UBufferGet(1));
+    UBufferSet(2,PNewArmies(PMe)-UBufferGet(1));
+  end;
+
+  // reinforce territory with depending on if its an offensive or defensive army
   ToTerritory:=0;
-  MaxArmies:=0;
-  for T:=1 to 42 do begin
-    if TIsFront(T) then begin  // territory is mine and front
-      Armies := TArmies(T);
-      if Armies>MaxArmies then begin
-        ToTerritory:=T;
-        MaxArmies:=Armies;
+  OffensiveArmies:=round(UBufferGet(1));
+  DefensiveArmies:=round(UBufferGet(2));
+  MaxDifference:=0;
+  if OffensiveArmies>DefensiveArmies then begin
+    // reinforce best offensive
+    for T:=1 to 42 do begin
+      if TIsFront(T) then begin  // territory is mine and front
+        TWeakestFront(T,ET,EA);
+        Difference:=TArmies(T)-EA;
+        if (Difference>MaxDifference) or (ToTerritory=0) then begin
+          ToTerritory:=T;
+          MaxDifference:=Difference;
+        end;
       end;
     end;
+    UBufferSet(1,UBufferGet(1)-1);
+  end else begin
+    // reinforce worst defensive
+    for T:=1 to 42 do begin
+      if TIsFront(T) then begin  // territory is mine and front
+        TStrongestFront(T,ET,EA);
+        Difference:=EA-TArmies(T);
+        if (Difference>MaxDifference) or (ToTerritory=0) then begin
+          ToTerritory:=T;
+          MaxDifference:=Difference;
+        end;
+      end;
+    end;
+    UBufferSet(2,UBufferGet(2)-1);
   end;
 end;
 
@@ -124,8 +169,6 @@ begin
 end;
 
 procedure Fortification(var FromTerritory, ToTerritory, Armies: integer);
-var
-  T,B,MaxArmy: integer;
 begin
   FromTerritory:=0;
   ToTerritory:=0;
