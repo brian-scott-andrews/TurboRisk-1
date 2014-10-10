@@ -14,7 +14,9 @@ UBuffer usage:
 
 function SelectOnContinent(C: integer): integer;
 var
-  T,MinFrontsEntry,MinFrontsNoEntry,TActual,TEntry,TNoEntry: integer;
+  T,TActual: integer;
+  MinFrontsEntry,MinFrontsNoEntry: integer;
+  TEntry,TNoEntry: integer;
 begin
   TEntry:=0;
   TNoEntry:=0;
@@ -46,9 +48,9 @@ end;
 procedure Assignment(var ToTerritory: integer);
 var
   R,MaxContested: double;
-  C,CActual,
-  T,PT,PA,ET,EA,
-  MaxEmpty,CEmpty,
+  C,CActual: integer;
+  T,PT,PA,ET,EA: integer;
+  MaxEmpty,CEmpty: integer;
   CContested: integer;
 begin
   ToTerritory:=0;
@@ -97,9 +99,9 @@ end;
 
 procedure Placement(var ToTerritory: integer);
 var
-  T,ET,EA,
-  Armies,
-  DefensiveArmies,OffensiveArmies,
+  T,ET,EA: integer;
+  Armies: integer;
+  DefensiveArmies,OffensiveArmies: integer;
   Difference,MaxDifference: integer;
 begin
   //Check UBuffers, if we have more armies to assign than in both buffers, reevaluate buffers
@@ -145,18 +147,38 @@ end;
 
 procedure Attack(var FromTerritory, ToTerritory: integer);
 var
-  T,EnemyT,EnemyA: integer;
+  T,F,EnemyT,EnemyA: integer;
+  Difference, MaxDifference: integer;
+  MinDifferenceSameContinent,MinDifferenceOtherContinent:integer;
 begin
-  // attack weakest point until exhausted
+  if SConquest then begin
+    MinDifferenceSameContinent:=5;
+    MinDifferenceOtherContinent:=15;
+  end else begin
+    MinDifferenceSameContinent:=2;
+    MinDifferenceOtherContinent:=5;
+  end;
+
+  // attack point with highest difference
   FromTerritory:=0;
   ToTerritory:=0;
+  MaxDifference:=-1;
   for T:=1 to 42 do begin
     if TIsFront(T)                      // territory is mine and front
     and (TArmies(T)>1) then begin       // attack is possible
-      TWeakestFront(T,EnemyT,EnemyA);
-      if EnemyT>0 then begin
-        FromTerritory:=T;
-        ToTerritory:=EnemyT;
+      for F:=1 to TFrontsCount(T) do begin
+        EnemyT:=TFront(T,F);
+        Difference:=TArmies(T)-TArmies(EnemyT);
+        if TContinent(T)=TContinent(EnemyT) then begin
+          Difference:=Difference-MinDifferenceSameContinent;
+        end else begin
+          Difference:=Difference-MinDifferenceOtherContinent;
+        end;
+        if Difference>MaxDifference then begin
+          MaxDifference:=Difference;
+          FromTerritory:=T;
+          ToTerritory:=EnemyT;
+        end;
       end;
     end;
   end;
@@ -164,8 +186,16 @@ end;
 
 procedure Occupation(FromTerritory, ToTerritory: integer; var Armies: integer);
 begin
-  //Move all
-  Armies:=TArmies(FromTerritory)-1;
+  if TIsFront(FromTerritory) then begin
+    if TIsFront(ToTerritory) then begin
+      //split armies, prefering ToTerritory
+    end else begin //To is not front
+      Armies:=0;
+    end;
+  end else begin //From is not front
+    //Move all
+    Armies:=TArmies(FromTerritory)-1;
+  end;
 end;
 
 procedure Fortification(var FromTerritory, ToTerritory, Armies: integer);
