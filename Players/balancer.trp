@@ -147,7 +147,7 @@ end;
 
 procedure Attack(var FromTerritory, ToTerritory: integer);
 var
-  T,F,EnemyT,EnemyA: integer;
+  T,F,EnemyT: integer;
   Difference, MaxDifference: integer;
   MinDifferenceSameContinent,MinDifferenceOtherContinent:integer;
 begin
@@ -185,10 +185,31 @@ begin
 end;
 
 procedure Occupation(FromTerritory, ToTerritory: integer; var Armies: integer);
+var
+  ET,EA:integer;
+  ArmiesFrom,ArmiesTo,ArmiesTotal:integer;
+  ArmiesDesiredFrom:integer;
 begin
   if TIsFront(FromTerritory) then begin
     if TIsFront(ToTerritory) then begin
-      //split armies, prefering ToTerritory
+      ArmiesTotal:=TArmies(FromTerritory)+TArmies(ToTerritory);
+      TStrongestFront(FromTerritory,ET,EA);
+      ArmiesFrom:=EA;
+      TStrongestFront(ToTerritory,ET,EA);
+      ArmiesTo:=EA;
+      if ArmiesTotal<ArmiesFrom+ArmiesTo then begin // too few armies available
+        ArmiesDesiredFrom:=round(double(ArmiesTotal)*double(ArmiesFrom)
+            /double(ArmiesFrom+ArmiesTo));
+      end else begin
+        ArmiesDesiredFrom:=ArmiesFrom;
+      end;
+      Armies:=TArmies(FromTerritory)-ArmiesDesiredFrom;
+      if Armies<0 then begin
+        Armies:=0;
+      end;
+      if Armies>TArmies(FromTerritory)-1 then begin
+        Armies:=TArmies(FromTerritory)-1;
+      end;
     end else begin //To is not front
       Armies:=0;
     end;
