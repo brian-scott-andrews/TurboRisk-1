@@ -99,10 +99,12 @@ end;
 
 procedure Placement(var ToTerritory: integer);
 var
-  T,ET,EA: integer;
+  T,B,TActual,ET,EA: integer;
   Armies: integer;
   DefensiveArmies,OffensiveArmies: integer;
-  Difference,MaxDifference: integer;
+  Difference,MaxDifference,MaxDifferenceWithHinterland: integer;
+  TBest,TBestWithHinterland: integer;
+  HasHinterland: boolean;
 begin
   //Check UBuffers, if we have more armies to assign than in both buffers, reevaluate buffers
   Armies:=round(UBufferGet(1)+UBufferGet(2));
@@ -131,15 +133,36 @@ begin
     UBufferSet(1,UBufferGet(1)-1);
   end else begin
     // reinforce worst defensive
+    TBest:=0;
+    TBestWithHinterland:=0;
     for T:=1 to 42 do begin
       if TIsFront(T) then begin  // territory is mine and front
+        HasHinterland:=false;
+        for B:=1 to TBordersCount(T) do begin
+          TActual:=TBorder(T,B);
+          if TIsMine(TActual) and not TIsFront(TActual) then begin
+            HasHinterland:=true;
+          end;
+        end;
         TStrongestFront(T,ET,EA);
         Difference:=EA-TArmies(T);
-        if (Difference>MaxDifference) or (ToTerritory=0) then begin
-          ToTerritory:=T;
-          MaxDifference:=Difference;
+        if HasHinterland then begin
+          if (Difference>MaxDifferenceWithHinterland) or (TBestWithHinterland=0) then begin
+            TBestWithHinterland:=T;
+            MaxDifferenceWithHinterland:=Difference;
+          end;
+        end else begin
+          if (Difference>MaxDifference) or (TBest=0) then begin
+            TBest:=T;
+            MaxDifference:=Difference;
+          end;
         end;
       end;
+    end;
+    if TBestWithHinterland>0 then begin
+      ToTerritory:=TBestWithHinterland;
+    end else begin
+      ToTerritory:=TBest;
     end;
     UBufferSet(2,UBufferGet(2)-1);
   end;
