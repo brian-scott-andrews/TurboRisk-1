@@ -245,10 +245,35 @@ begin
 end;
 
 procedure Fortification(var FromTerritory, ToTerritory, Armies: integer);
+var
+  T,B,TActual: integer;
+  ET,EA: integer;
+  Need,MaxNeed: integer;
 begin
   FromTerritory:=0;
   ToTerritory:=0;
   Armies:=0;
+  MaxNeed:=0;
+  for T:=1 to 42 do begin
+    if TIsMine(T) and (TArmies(T)>1) and (not TIsFront(T)) then begin
+      for B:=1 to TBordersCount(T) do begin
+        TActual:=TBorder(T,B);
+        if TIsFront(TActual) then begin
+          TStrongestFront(TActual,ET,EA);
+          Need:=EA-TArmies(T)-TArmies(TActual);
+          if (Need>MaxNeed)  or (ToTerritory=0) then begin
+            MaxNeed:=Need;
+            FromTerritory:=T;
+            ToTerritory:=TActual;
+          end;
+        end;
+      end
+    end;
+  end;
+
+  if ToTerritory>0 then begin
+    Armies:=TArmies(FromTerritory)-1;
+  end;
 end;
 
 begin
