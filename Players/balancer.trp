@@ -159,6 +159,7 @@ begin
         end;
       end;
     end;
+    // Select territory with hinterland first
     if TBest=0 then begin
       ToTerritory:=TBestWithHinterland;
     end else if (TBestWithHinterland>0) and (MaxDifferenceWithHinterland+5>MaxDifference) then begin
