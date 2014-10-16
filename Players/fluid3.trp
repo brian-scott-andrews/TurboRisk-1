@@ -86,39 +86,22 @@ end;
 
 procedure Attack(var FromTerritory, ToTerritory: integer);
 var
-  T,F,EnemyT: integer;
-  Difference, MaxDifference: integer;
-  MinDifferenceSameContinent,MinDifferenceOtherContinent:integer;
+  T: integer;
+  FrontsClosed,FrontsChange: integer;
+  MinDifference: integer;
 begin
-  if SConquest then begin
-    MinDifferenceSameContinent:=5;
-    MinDifferenceOtherContinent:=15;
-  end else begin
-    MinDifferenceSameContinent:=2;
-    MinDifferenceOtherContinent:=5;
-  end;
-
-  // attack point with highest difference
   FromTerritory:=0;
   ToTerritory:=0;
-  MaxDifference:=-1;
+  if SConquest then begin
+    MinDifference:=2;
+  end else begin
+    MinDifference:=8;
+  end;
   for T:=1 to 42 do begin
-    if TIsFront(T)                      // territory is mine and front
-    and (TArmies(T)>1) then begin       // attack is possible
-      for F:=1 to TFrontsCount(T) do begin
-        EnemyT:=TFront(T,F);
-        Difference:=TArmies(T)-TArmies(EnemyT);
-        if TContinent(T)=TContinent(EnemyT) then begin
-          Difference:=Difference-MinDifferenceSameContinent;
-        end else begin
-          Difference:=Difference-MinDifferenceOtherContinent;
-        end;
-        if Difference>MaxDifference then begin
-          MaxDifference:=Difference;
-          FromTerritory:=T;
-          ToTerritory:=EnemyT;
-        end;
-      end;
+    if not TIsMine(T) then begin
+      ComputeFronts(T,FrontsClosed,FrontsChange);
+      compute available armies
+      select best territory
     end;
   end;
 end;
