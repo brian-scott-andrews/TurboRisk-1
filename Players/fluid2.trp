@@ -62,75 +62,17 @@ end;
 
 procedure Placement(var ToTerritory: integer);
 var
-  T,B,TActual,ET,EA: integer;
-  Armies: integer;
-  DefensiveArmies,OffensiveArmies: integer;
-  Difference,MaxDifference,MaxDifferenceWithHinterland: integer;
-  TBest,TBestWithHinterland: integer;
-  HasHinterland: boolean;
+  T,Armies,MinArmies: integer;
 begin
-  //Check UBuffers, if we have more armies to assign than in both buffers, reevaluate buffers
-  Armies:=round(UBufferGet(1)+UBufferGet(2));
-  if Armies<PNewArmies(PMe) then begin
-    UBufferSet(1,round((PNewArmies(PMe)-Armies)/2)+UBufferGet(1));
-    UBufferSet(2,PNewArmies(PMe)-UBufferGet(1));
-  end;
-
-  // reinforce territory with depending on if its an offensive or defensive army
-  ToTerritory:=0;
-  OffensiveArmies:=round(UBufferGet(1));
-  DefensiveArmies:=round(UBufferGet(2));
-  MaxDifference:=0;
-  if OffensiveArmies>DefensiveArmies then begin
-    // reinforce best offensive
-    for T:=1 to 42 do begin
-      if TIsFront(T) then begin  // territory is mine and front
-        TWeakestFront(T,ET,EA);
-        Difference:=TArmies(T)-EA;
-        if (Difference>MaxDifference) or (ToTerritory=0) then begin
-          ToTerritory:=T;
-          MaxDifference:=Difference;
-        end;
-      end;
+  // balance all fronts
+  for T:=1 to 42 do begin
+    if TIsFront(T) then begin
+      Armies:=TArmies(T);
+      if (ToTerritory=0) or (Armies<MinArmies) then begin
+        MinArmies:=Armies;
+        ToTerritory:=T;
+      end
     end;
-    UBufferSet(1,UBufferGet(1)-1);
-  end else begin
-    // reinforce worst defensive
-    TBest:=0;
-    TBestWithHinterland:=0;
-    for T:=1 to 42 do begin
-      if TIsFront(T) then begin  // territory is mine and front
-        HasHinterland:=false;
-        for B:=1 to TBordersCount(T) do begin
-          TActual:=TBorder(T,B);
-          if TIsMine(TActual) and not TIsFront(TActual) then begin
-            HasHinterland:=true;
-          end;
-        end;
-        TStrongestFront(T,ET,EA);
-        Difference:=EA-TArmies(T);
-        if HasHinterland then begin
-          if (Difference>MaxDifferenceWithHinterland) or (TBestWithHinterland=0) then begin
-            TBestWithHinterland:=T;
-            MaxDifferenceWithHinterland:=Difference;
-          end;
-        end else begin
-          if (Difference>MaxDifference) or (TBest=0) then begin
-            TBest:=T;
-            MaxDifference:=Difference;
-          end;
-        end;
-      end;
-    end;
-    // Select territory with hinterland first
-    if TBest=0 then begin
-      ToTerritory:=TBestWithHinterland;
-    end else if (TBestWithHinterland>0) and (MaxDifferenceWithHinterland+5>MaxDifference) then begin
-      ToTerritory:=TBestWithHinterland;
-    end else begin
-      ToTerritory:=TBest;
-    end;
-    UBufferSet(2,UBufferGet(2)-1);
   end;
 end;
 
