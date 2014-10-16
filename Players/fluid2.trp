@@ -10,6 +10,13 @@ Description: Tries to reduce the amount of fronts it has.
 UBuffer usage:
 }
 
+{
+Computes the effect of conquering a territory on the front line.
+
+T: Territory to be conquered.
+FrontsClosed: Number of my front territories that cease to be fronts if T is conquered.
+FrontsChange: The change of enemy territories bordering on my territories if T is conquered.
+}
 procedure ComputeFronts(T: integer; var FrontsClosed, FrontsChange: integer);
 var
   B,TActual: integer;
@@ -35,6 +42,7 @@ var
   FrontsClosed,MaxFrontsClosed,TFrontsClosed: integer;
   FrontsChange,MinFrontsChange,TFrontsChange: integer;
 begin
+  // choose territories to reduce the frontline
   MaxFrontsClosed:=0;
   for T:=1 to 42 do begin
     if TOwner(T)=0 then begin
