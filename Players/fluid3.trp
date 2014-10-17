@@ -86,23 +86,71 @@ end;
 
 procedure Attack(var FromTerritory, ToTerritory: integer);
 var
-  T: integer;
-  FrontsClosed,FrontsChange: integer;
+  T,B,TActual: integer;
+  Armies,ArmiesForAttack,MaxArmies,TMaxArmies: integer;
+  FrontsClosed,MaxFrontsClosed,FromFrontsClosed,ToFrontsClosed: integer;
+  FrontsChange,MinFrontsChange,FromFrontsChange,ToFrontsChange: integer;
   MinDifference: integer;
 begin
   FromTerritory:=0;
   ToTerritory:=0;
+  MaxFrontsClosed:=0;
   if SConquest then begin
-    MinDifference:=2;
-  end else begin
     MinDifference:=8;
+  end else begin
+    MinDifference:=2;
   end;
   for T:=1 to 42 do begin
     if not TIsMine(T) then begin
-      ComputeFronts(T,FrontsClosed,FrontsChange);
-      compute available armies
-      select best territory
+      if TPathToFront(T)>0 then begin
+        ComputeFronts(T,FrontsClosed,FrontsChange);
+        if (ToFrontsChange=0) or
+           (FrontsChange<MinFrontsChange) or
+           (FrontsClosed>MaxFrontsClosed) then begin
+          ArmiesForAttack:=0;
+          MaxArmies:=0;
+          TMaxArmies:=0;
+          for B:=1 to TBordersCount(T) do begin
+            TActual:=TBorder(T,B);
+            if TIsMine(TActual) then begin
+              Armies:=TArmies(TActual)-1;
+              ArmiesForAttack:=ArmiesForAttack+Armies;
+              if (TMaxArmies=0) or (Armies>MaxArmies) then begin
+                TMaxArmies:=TActual;
+                MaxArmies:=Armies;
+              end;
+            end;
+          end;
+          if ArmiesForAttack-TArmies(T)>=MinDifference then begin
+          UBufferSet(T,ArmiesForAttack);
+            if (ToFrontsChange=0) or (FrontsChange<MinFrontsChange) then begin
+              MinFrontsChange:=FrontsChange;
+              FromFrontsChange:=TMaxArmies;
+              ToFrontsChange:=T;
+            end;
+            if FrontsClosed>MaxFrontsClosed then begin
+              MaxFrontsClosed:=FrontsClosed;
+              FromFrontsClosed:=TMaxArmies;
+              ToFrontsClosed:=T;
+            end;
+          end;
+        end;
+      end;
     end;
+  end;
+
+  if ToFrontsClosed=0 then begin
+    ToTerritory:=ToFrontsChange;
+    FromTerritory:=FromFrontsChange;
+  end else if MaxFrontsClosed>1 then begin
+    ToTerritory:=ToFrontsClosed;
+    FromTerritory:=FromFrontsClosed;
+  end else if MinFrontsChange<0 then begin
+    ToTerritory:=ToFrontsChange;
+    FromTerritory:=FromFrontsChange;
+  end else begin
+    ToTerritory:=ToFrontsClosed;
+    FromTerritory:=FromFrontsClosed;
   end;
 end;
 
