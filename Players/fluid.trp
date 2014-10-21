@@ -98,7 +98,7 @@ begin
   if SConquest then begin
     MinDifference:=6;
   end else begin
-    MinDifference:=1;
+    MinDifference:=2;
   end;
   for T:=1 to 42 do begin
     if not TIsMine(T) then begin
@@ -113,9 +113,12 @@ begin
           for B:=1 to TBordersCount(T) do begin
             TActual:=TBorder(T,B);
             if TIsMine(TActual) then begin
-              Armies:=(TArmies(TActual)-1)-(TPressure(TActual)-TArmies(T));
+              Armies:=(TArmies(TActual)-1)-(TPressure(TActual)-(TFrontsCount(TActual)-1)-TArmies(T));
+              if Armies<0 then begin
+                Armies:=0;
+              end;
               ArmiesForAttack:=ArmiesForAttack+Armies;
-              if (TMaxArmies=0) or (Armies>MaxArmies) then begin
+              if Armies>MaxArmies then begin
                 TMaxArmies:=TActual;
                 MaxArmies:=Armies;
               end;
