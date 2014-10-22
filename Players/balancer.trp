@@ -122,8 +122,7 @@ begin
     // reinforce best offensive
     for T:=1 to 42 do begin
       if TIsFront(T) then begin  // territory is mine and front
-        TWeakestFront(T,ET,EA);
-        Difference:=TArmies(T)-EA;
+        Difference:=TArmies(T)-TPressure(T);
         if (Difference>MaxDifference) or (ToTerritory=0) then begin
           ToTerritory:=T;
           MaxDifference:=Difference;
