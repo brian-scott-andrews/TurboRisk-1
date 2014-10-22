@@ -8,16 +8,15 @@ Description: Adaptation of the Rambo.trp to be even more stupid
 
 procedure Assignment(var ToTerritory: integer);
 var
-  R: double;
   T: integer;
 begin
   // find random free territory (a very stupid way to start the game!)
   ToTerritory:=0;
   repeat
-    R:=URandom(42);
-    T:=round(R)+1;
-    if TOwner(T)=0 then
+    T:=round(URandom(42))+1;
+    if TOwner(T)=0 then begin
       ToTerritory:=T;
+    end;
   until (ToTerritory>0);
 end;
 
@@ -25,9 +24,9 @@ procedure Placement(var ToTerritory: integer);
 var
   T,Armies,MaxArmies: integer;
 begin
-  // reinforce territory with most armies and front
+  // reinforce front territory with the most armies if it has more than one army
   ToTerritory:=0;
-  MaxArmies:=0;
+  MaxArmies:=1;
   for T:=1 to 42 do begin
     if TIsFront(T) then begin  // territory is mine and front
       Armies := TArmies(T);
@@ -35,6 +34,13 @@ begin
         ToTerritory:=T;
         MaxArmies:=Armies;
       end;
+    end;
+  end;
+
+  while ToTerritory=0 do begin
+    T:=round(URandom(42))+1;
+    if TIsFront(T) then begin
+      ToTerritory:=T;
     end;
   end;
 end;
@@ -65,8 +71,6 @@ begin
 end;
 
 procedure Fortification(var FromTerritory, ToTerritory, Armies: integer);
-var
-  T,B,MaxArmy: integer;
 begin
   FromTerritory:=0;
   ToTerritory:=0;
