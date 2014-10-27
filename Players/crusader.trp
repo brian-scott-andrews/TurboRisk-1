@@ -10,62 +10,18 @@ Description: Has a strict set of rules and follows them blindly.
 UBuffer usage:
 }
 
-{
-Computes the effect of conquering a territory on the front line.
-
-T: Territory to be conquered.
-FrontsClosed: Number of my front territories that cease to be fronts if T is conquered.
-FrontsChange: The change of enemy territories bordering on my territories if T is conquered.
-}
-procedure ComputeFronts(T: integer; var FrontsClosed, FrontsChange: integer);
-var
-  B,TActual: integer;
-begin
-  FrontsChange:=0;
-  FrontsClosed:=0;
-  for B:=1 to TBordersCount(T) do begin
-    TActual:=TBorder(T,B);
-    if TIsMine(TActual) then begin
-      if TFrontsCount(TActual)=1 then begin
-        FrontsClosed:=FrontsClosed+1;
-      end;
-      FrontsChange:=FrontsChange-1;
-    end else begin
-      FrontsChange:=FrontsChange+1;
-    end;
-  end;
-end;
-
 procedure Assignment(var ToTerritory: integer);
 var
   T: integer;
-  FrontsClosed,MaxFrontsClosed,TFrontsClosed: integer;
-  FrontsChange,MinFrontsChange,TFrontsChange: integer;
 begin
-  // choose territories to reduce the frontline
-  MaxFrontsClosed:=0;
-  for T:=1 to 42 do begin
+  // find random free territory (a very stupid way to start the game!)
+  ToTerritory:=0;
+  repeat
+    T:=round(URandom(42))+1;
     if TOwner(T)=0 then begin
-      ComputeFronts(T,FrontsClosed,FrontsChange);
-      if (TFrontsChange=0) or (FrontsChange<MinFrontsChange) then begin
-        MinFrontsChange:=FrontsChange;
-        TFrontsChange:=T;
-      end;
-      if FrontsClosed>MaxFrontsClosed then begin
-        MaxFrontsClosed:=FrontsClosed;
-        TFrontsClosed:=T;
-      end;
+      ToTerritory:=T;
     end;
-  end;
-  if TFrontsClosed=0 then begin
-    ToTerritory:=TFrontsChange;
-  end else if MaxFrontsClosed>1 then begin
-    ToTerritory:=TFrontsClosed;
-  end else if MinFrontsChange<0 then begin
-    ToTerritory:=TFrontsChange;
-  end else begin
-    ToTerritory:=TFrontsClosed;
-  end;
+  until (ToTerritory>0);
 end;
 
 procedure Placement(var ToTerritory: integer);
@@ -86,73 +42,20 @@ end;
 
 procedure Attack(var FromTerritory, ToTerritory: integer);
 var
-  T,B,TActual: integer;
-  Armies,ArmiesForAttack,MaxArmies,TMaxArmies: integer;
-  FrontsClosed,MaxFrontsClosed,FromFrontsClosed,ToFrontsClosed: integer;
-  FrontsChange,MinFrontsChange,FromFrontsChange,ToFrontsChange: integer;
-  MinDifference: integer;
+  T,EnemyT,EnemyA: integer;
 begin
+  // attack weakest point until exhausted
   FromTerritory:=0;
   ToTerritory:=0;
-  MaxFrontsClosed:=0;
-  if SConquest then begin
-    MinDifference:=6;
-  end else begin
-    MinDifference:=2;
-  end;
   for T:=1 to 42 do begin
-    if not TIsMine(T) then begin
-      if TPathToFront(T)>0 then begin
-        ComputeFronts(T,FrontsClosed,FrontsChange);
-        if (ToFrontsChange=0) or
-           (FrontsChange<MinFrontsChange) or
-           (FrontsClosed>MaxFrontsClosed) then begin
-          ArmiesForAttack:=0;
-          MaxArmies:=0;
-          TMaxArmies:=0;
-          for B:=1 to TBordersCount(T) do begin
-            TActual:=TBorder(T,B);
-            if TIsMine(TActual) then begin
-              Armies:=(TArmies(TActual)-1)-(TPressure(TActual)-(TFrontsCount(TActual)-1)-TArmies(T));
-              if Armies<0 then begin
-                Armies:=0;
-              end;
-              ArmiesForAttack:=ArmiesForAttack+Armies;
-              if Armies>MaxArmies then begin
-                TMaxArmies:=TActual;
-                MaxArmies:=Armies;
-              end;
-            end;
-          end;
-          if ArmiesForAttack-TArmies(T)>=MinDifference then begin
-            if (ToFrontsChange=0) or (FrontsChange<MinFrontsChange) then begin
-              MinFrontsChange:=FrontsChange;
-              FromFrontsChange:=TMaxArmies;
-              ToFrontsChange:=T;
-            end;
-            if FrontsClosed>MaxFrontsClosed then begin
-              MaxFrontsClosed:=FrontsClosed;
-              FromFrontsClosed:=TMaxArmies;
-              ToFrontsClosed:=T;
-            end;
-          end;
-        end;
+    if TIsFront(T)                      // territory is mine and front
+    and (TArmies(T)>1) then begin       // attack is possible
+      TWeakestFront(T,EnemyT,EnemyA);
+      if EnemyT>0 then begin
+        FromTerritory:=T;
+        ToTerritory:=EnemyT;
       end;
     end;
-  end;
-
-  if ToFrontsClosed=0 then begin
-    ToTerritory:=ToFrontsChange;
-    FromTerritory:=FromFrontsChange;
-  end else if MaxFrontsClosed>1 then begin
-    ToTerritory:=ToFrontsClosed;
-    FromTerritory:=FromFrontsClosed;
-  end else if MinFrontsChange<0 then begin
-    ToTerritory:=ToFrontsChange;
-    FromTerritory:=FromFrontsChange;
-  end else begin
-    ToTerritory:=ToFrontsClosed;
-    FromTerritory:=FromFrontsClosed;
   end;
 end;
 
