@@ -10,12 +10,119 @@ Description: Has a strict set of rules and follows them blindly.
 UBuffer usage:
 }
 
+{
+Tries to find a continent where I'm leading but not owner. If there are multiple
+continents select the one with the highest ratio of owned countries.
+
+Result: true if a continent was found.
+NeedsFree: set to true if free countries are necessary for selection.
+C: the index of the continent or -1 if none was found.
+}
+function TryFindBestLeadingContinent(NeedsFree: boolean;var C: integer): boolean;
+var
+  CCurrent: integer;
+  P,T,A,ET,EA,CTC: integer;
+  Ratio,MinRatio: double;
+begin
+  C:=-1;
+  Result:=false;
+  MinRatio:=1;
+  for CCurrent:=1 to 6 do begin
+    CLeader(CCurrent,P,T,A);
+    if (P=PMe) and (COwner(C)<>PMe) then begin
+      CAnalysis(C,T,A,ET,EA);
+      CTC:=CTerritoriesCount(CCurrent);
+      if (not NeedsFree) or (T+ET<CTC) then begin
+        Ratio:=double(CTC-T)/double(CTC);
+        if Ratio<MinRatio then begin
+          MinRatio:=Ratio;
+          C:=CCurrent;
+          Result:=true;
+        end;
+      end;
+    end;
+  end;
+end;
+
+{
+Tries to find a continent where an enemy has almost complete ownership.
+
+Result: true if a continent was found.
+NeedsFree: set to true if free countries are necessary for selection.
+C: the index of the continent or -1 if none was found.
+}
+function TryFindEnemyContinent(NeedsFree: boolean;var C: integer): boolean;
+var
+  CCurrent: integer;
+  LP,LT,LA,PT,PA,ET,EA,CTC: integer;
+  Ratio,MinRatio: double;
+begin
+  ULogOn()
+  C:=-1;
+  Result:=false;
+  MinRatio:=1;
+  for CCurrent:=1 to 6 do begin
+    CLeader(CCurrent,LP,LT,LA);
+    if LP<>PMe then begin
+      CAnalysis(C,PT,PA,ET,EA);
+      CTC:=CTerritoriesCount(CCurrent);
+      if (not NeedsFree) or (PT+ET<CTC) then begin
+        if CTC-LT<=1 then begin
+          Ratio:=double(CTC-LT)/double(CTC);
+          if Ratio<MinRatio then begin
+            MinRatio:=Ratio;
+            C:=CCurrent;
+            Result:=true;
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
+{
+Tries to find a continent where I have the best changes but I'm not owner.
+
+Result: the index of the best continent.
+NeedsFree: set to true if free countries are necessary for selection.
+}
+function FindBestContinent(NeedsFree:boolean): integer;
+var
+  C: integer;
+  CTC,PT,PA,ET,EA: integer;
+  TRatio,ARatio,Ratio,MinRatio: double;
+begin
+  Result:=-1;
+  MinRatio:=1;
+  for C:=1 to 6 do begin
+    CAnalysis(C,PT,PA,ET,EA);
+    CTC:=CTerritoriesCount(C);
+    if COwner(C)<>Pme then begin
+      if (not NeedsFree) or (PT+ET<CTC) then begin
+        TRatio:=double(CTC-PT)/double(CTC);
+        ARatio:=double(EA+CTC)/double(EA+ET+CTC);
+        Ratio:=TRatio*ARatio;
+        if Ratio<MinRatio then begin
+          MinRatio:=Ratio;
+          Result:=C;
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure Assignment(var ToTerritory: integer);
 var
-  T: integer;
+  T,C,CT: integer;
 begin
-  // find random free territory (a very stupid way to start the game!)
   ToTerritory:=0;
+  if TryFindBestLeadingContinent(true,C) then begin
+  end else if TryFindEnemyContinent(false,C) then begin
+  end else begin
+    C:=FindBestContinent(true);
+  end;
+
+  // find random free territory (a very stupid way to start the game!)
   repeat
     T:=round(URandom(42))+1;
     if TOwner(T)=0 then begin
