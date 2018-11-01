@@ -100,11 +100,107 @@ begin
     if COwner(C)<>Pme then begin
       if (not NeedsFree) or (PT+ET<CTC) then begin
         TRatio:=double(CTC-PT)/double(CTC);
-        ARatio:=double(EA+CTC)/double(EA+ET+CTC);
+        ARatio:=double(EA+CTC)/double(EA+PA+CTC);
         Ratio:=TRatio*ARatio;
         if Ratio<MinRatio then begin
           MinRatio:=Ratio;
           Result:=C;
+        end;
+      end;
+    end;
+  end;
+end;
+
+{
+Tries to find the territory that removes the most other territories from the front.
+
+Result: true if a territory was found.
+C: index of the continent to search.
+NeedsFree: set to true if the territory must be unoccupied.
+TBest: the index of the best territory.
+}
+function TryFindFrontClosingTerritory(C:integer; NeedsFree:boolean; var TBest:integer): boolean;
+var
+  T,CT:integer;
+  B,BT:integer;
+  FrontsClosed,MaxFrontsClosed: integer;
+begin
+  MaxFrontsClosed:=0;
+  TBest:=-1;
+  Result:=false;
+  for CT:=1 to CTerritoriesCount(C) do begin
+    T:=CTerritory(C,CT);
+    if TOwner(T)<>PMe then begin
+      if (not NeedsFree) or (TOwner(T)=0) then begin
+        FrontsClosed:=0;
+        for BT:=1 to TBordersCount(T) do begin
+          B:=TBorder(T,BT);
+          if TIsMine(B) and (TFrontsCount(B)=1) then begin
+            FrontsClosed:=FrontsClosed+1;
+          end;
+        end;
+        if FrontsClosed>MaxFrontsClosed then begin
+          MaxFrontsClosed:=FrontsClosed;
+          TBest:=T;
+          Result:=true;
+        end;
+      end;
+    end;
+  end;
+end;
+
+{
+Computes the ratio of enemy armies to total armies in and around territory T.
+}
+function RatioEnemyArmiesToTotalArmies(T: integer): double;
+var
+  B,BT: integer;
+  EnemyArmies,TotalArmies: integer;
+begin
+  if TOwner(T)<>PMe then begin
+    EnemyArmies:=TArmies(T);
+  end else begin
+    EnemyArmies:=0;
+  end;
+  TotalArmies:=TArmies(T);
+  for BT:=1 to TBordersCount(T) do begin
+    B:=TBorder(T,BT);
+    if TOwner(B)<>PMe then begin
+      EnemyArmies:=EnemyArmies+TArmies(B);
+    end;
+    TotalArmies:=TotalArmies+TArmies(B);
+  end;
+  if TotalArmies=0 then begin
+    Result:=1;
+  end else begin
+    Result:=double(EnemyArmies)/double(TotalArmies);
+  end;
+end;
+
+{
+Tries to find the territory that offers the best compromise of few fronts and
+little pressure.
+
+Result: the index of the best territory.
+C: index of the continent to search.
+NeedsFree: set to true if the territory must be unoccupied.
+}
+function FindBestTerritory(C:integer; NeedsFree:boolean): integer;
+var
+  T,CT:integer;
+  Ratio,MinRatio: double;
+begin
+  MinRatio:=0;
+  Result:=-1;
+  for CT:=1 to CTerritoriesCount(C) do begin
+    T:=CTerritory(C,CT);
+    if TOwner(T)<>PMe then begin
+      if (not NeedsFree) or (TOwner(T)=0) then begin
+        Ratio:=double(TFrontsCount(T))/double(TBordersCount(T))
+          *RatioEnemyArmiesToTotalArmies(T);
+        if (Ratio<MinRatio) or (Result=-1) then begin
+          MinRatio:=Ratio;
+          Result:=T;
         end;
       end;
     end;
@@ -117,18 +213,25 @@ var
 begin
   ToTerritory:=0;
   if TryFindBestLeadingContinent(true,C) then begin
-  end else if TryFindEnemyContinent(false,C) then begin
+  end else if TryFindEnemyContinent(true,C) then begin
   end else begin
     C:=FindBestContinent(true);
   end;
 
+  check c
+
+  if TryFindFrontClosingTerritory(C,true,ToTerritory) then begin
+  end else begin
+    ToTerritory:=FindBestTerritory(C,true);
+  end;
+
   // find random free territory (a very stupid way to start the game!)
-  repeat
+  while ToTerritory=0 do begin
     T:=round(URandom(42))+1;
     if TOwner(T)=0 then begin
       ToTerritory:=T;
     end;
-  until (ToTerritory>0);
+  end;
 end;
 
 procedure Placement(var ToTerritory: integer);
